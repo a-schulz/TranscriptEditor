@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <style>
         body {
@@ -16,14 +17,15 @@
             max-width: 1200px;
             margin: 0 auto;
             position: relative;
-            min-height: calc(100vh - 40px);  /* Account for body padding */
+            min-height: calc(100vh - 40px);
+            /* Account for body padding */
         }
 
         .audio-controls {
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 20px;
             width: 300px;
@@ -73,7 +75,7 @@
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
             max-height: calc(100vh - 40px);
         }
@@ -107,7 +109,8 @@
             line-height: 1.5;
         }
 
-        select, button {
+        select,
+        button {
             padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -170,6 +173,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="audio-controls">
@@ -240,7 +244,7 @@
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     try {
                         transcriptData = JSON.parse(e.target.result);
                         renderTranscript();
@@ -269,30 +273,31 @@
             const div = document.createElement('div');
             div.className = 'transcript-segment';
             div.innerHTML = `
-                <div class="segment-header">
-                    <select class="speaker-select">
-                        <option value="">Select Speaker</option>
-                        <option value="speaker1">Speaker 1</option>
-                        <option value="speaker2">Speaker 2</option>
-                        <option value="speaker3">Speaker 3</option>
-                    </select>
-                    <span class="timestamp">${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s</span>
-                </div>
-                <div class="segment-content">
-                    <textarea>${segment.text}</textarea>
-                    <button class="split-marker" title="Split segment">+</button>
-                </div>
-            `;
+        <div class="segment-header">
+            <div>
+                <label><input type="radio" name="speaker${index}" value="speaker1" ${segment.speaker === 'speaker1' ? 'checked' : ''}> Speaker 1</label>
+                <label><input type="radio" name="speaker${index}" value="speaker2" ${segment.speaker === 'speaker2' ? 'checked' : ''}> Speaker 2</label>
+                <label><input type="radio" name="speaker${index}" value="speaker3" ${segment.speaker === 'speaker3' ? 'checked' : ''}> Speaker 3</label>
+            </div>
+            <span class="timestamp" data-start="${segment.start.toFixed(2)}">${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s</span>
+        </div>
+        <div class="segment-content">
+            <textarea>${segment.text}</textarea>
+            <button class="split-marker" title="Split segment">+</button>
+        </div>
+    `;
 
-            // Set speaker if it exists in the data
-            if (segment.speaker) {
-                div.querySelector('.speaker-select').value = segment.speaker;
-            }
+            // Listen for changes in speaker selection and update transcriptData
+            const speakerInputs = div.querySelectorAll(`input[name="speaker${index}"]`);
+            speakerInputs.forEach(input => {
+                input.addEventListener('change', (event) => {
+                    transcriptData[index].speaker = event.target.value;  // Update speaker in transcriptData
+                });
+            });
 
             // Add split functionality
             const splitButton = div.querySelector('.split-marker');
             const textarea = div.querySelector('textarea');
-
             splitButton.addEventListener('click', () => {
                 const selection = textarea.selectionStart;
                 if (selection > 0) {
@@ -300,24 +305,29 @@
                     const firstPart = text.substring(0, selection);
                     const secondPart = text.substring(selection);
 
+                    // Get the selected speaker
+                    const speaker = transcriptData[index].speaker;
+
                     // Create a deep copy of the current segment
-                    const currentSegment = {...transcriptData[index]};
+                    const currentSegment = { ...transcriptData[index] };
                     const midTime = (currentSegment.start + currentSegment.end) / 2;
 
                     // Update current segment
                     transcriptData[index] = {
                         ...currentSegment,
                         text: firstPart,
-                        end: midTime
+                        end: midTime,
+                        speaker: speaker  // Keep the speaker for the current segment
                     };
 
-                    // Create new segment
+                    // Create new segment with the same speaker
                     const newSegment = {
                         ...currentSegment,
                         id: transcriptData.length,
                         start: midTime,
                         end: currentSegment.end,
-                        text: secondPart
+                        text: secondPart,
+                        speaker: speaker  // Set the same speaker for the new segment
                     };
 
                     // Insert new segment after current one
@@ -329,6 +339,7 @@
             return div;
         }
 
+
         function renderTranscript() {
             transcriptContainer.innerHTML = '';
             transcriptData.forEach((segment, index) => {
@@ -338,10 +349,26 @@
 
         function getCurrentTranscriptData() {
             const segments = document.querySelectorAll('.transcript-segment');
+
             return Array.from(segments).map((segment, index) => {
-                const speaker = segment.querySelector('.speaker-select').value;
-                const text = segment.querySelector('textarea').value;
-                const timestamps = segment.querySelector('.timestamp').textContent.match(/(\d+\.?\d*)/g);
+                const speakerElement = segment.querySelector(`input[name="speaker${index}"]:checked`);
+                const textElement = segment.querySelector('textarea');
+                const timestampElement = segment.querySelector('.timestamp');
+
+                // Ensure elements exist before accessing them
+                if (!textElement || !timestampElement) {
+                    console.error(`Missing elements in segment ${index}`);
+                    return null;
+                }
+
+                let speaker = "";
+
+                if (speakerElement) {
+                    speaker = speakerElement.value;
+                }
+
+                const text = textElement.value;
+                const timestamps = timestampElement.textContent.match(/(\d+\.?\d*)/g);
 
                 return {
                     id: index,
@@ -350,8 +377,9 @@
                     end: parseFloat(timestamps[1]),
                     text: text
                 };
-            });
+            }).filter(segment => segment !== null);  // Filter out any null segments
         }
+
 
         function downloadTranscript() {
             const currentData = getCurrentTranscriptData();
@@ -372,4 +400,5 @@
         renderTranscript();
     </script>
 </body>
+
 </html>
