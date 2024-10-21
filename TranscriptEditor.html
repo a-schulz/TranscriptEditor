@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            min-height: calc(100vh - 40px);  /* Account for body padding */
+        }
+
+        .audio-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 20px;
+            width: 300px;
+            height: fit-content;
+            align-self: flex-start;
+        }
+
+        .control-group {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .file-upload {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .file-upload label {
+            display: inline-block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            padding: 8px 12px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .upload-btn:hover {
+            background: #5a6268;
+        }
+
+        .transcript-container {
+            flex-grow: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: calc(100vh - 40px);
+        }
+
+        .transcript-segment {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .segment-header {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .segment-content {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        select, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .split-marker {
+            position: absolute;
+            right: -30px;
+            width: 24px;
+            height: 24px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            z-index: 1;
+        }
+
+        .transcript-segment:hover .split-marker {
+            display: block;
+        }
+
+        .download-btn {
+            background: #28a745;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .upload-status {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        #audio-player {
+            width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="audio-controls">
+            <div class="file-upload">
+                <label>Audio File (MP3)</label>
+                <label class="upload-btn" for="audio-upload">
+                    Choose Audio File
+                </label>
+                <input type="file" id="audio-upload" accept=".mp3" />
+                <div id="audio-status" class="upload-status"></div>
+            </div>
+
+            <div class="file-upload">
+                <label>Transcript (JSON)</label>
+                <label class="upload-btn" for="json-upload">
+                    Choose JSON File
+                </label>
+                <input type="file" id="json-upload" accept=".json" />
+                <div id="json-status" class="upload-status"></div>
+            </div>
+
+            <audio id="audio-player" controls>
+                <source id="audio-source" type="audio/mpeg">
+            </audio>
+
+            <div class="control-group">
+                <label>Playback Speed: </label>
+                <select id="playback-speed">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <button class="download-btn" onclick="downloadTranscript()">Download Transcript</button>
+            </div>
+        </div>
+
+        <div class="transcript-container" id="transcript-container">
+        </div>
+    </div>
+
+    <script>
+        // Initialize with empty transcript data
+        let transcriptData = [];
+
+        // File upload handlers
+        document.getElementById('audio-upload').addEventListener('change', handleAudioUpload);
+        document.getElementById('json-upload').addEventListener('change', handleJSONUpload);
+
+        function handleAudioUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const audioURL = URL.createObjectURL(file);
+                const audioPlayer = document.getElementById('audio-player');
+                const audioSource = document.getElementById('audio-source');
+                audioSource.src = audioURL;
+                audioPlayer.load();
+
+                document.getElementById('audio-status').textContent = `Loaded: ${file.name}`;
+            }
+        }
+
+        function handleJSONUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        transcriptData = JSON.parse(e.target.result);
+                        renderTranscript();
+                        document.getElementById('json-status').textContent = `Loaded: ${file.name}`;
+                    } catch (error) {
+                        document.getElementById('json-status').textContent = 'Error: Invalid JSON file';
+                        console.error('Error parsing JSON:', error);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Audio player setup
+        const audioPlayer = document.getElementById('audio-player');
+        const speedSelect = document.getElementById('playback-speed');
+
+        speedSelect.addEventListener('change', (e) => {
+            audioPlayer.playbackRate = parseFloat(e.target.value);
+        });
+
+        // Create transcript segments
+        const transcriptContainer = document.getElementById('transcript-container');
+
+        function createSegment(segment, index) {
+            const div = document.createElement('div');
+            div.className = 'transcript-segment';
+            div.innerHTML = `
+                <div class="segment-header">
+                    <select class="speaker-select">
+                        <option value="">Select Speaker</option>
+                        <option value="speaker1">Speaker 1</option>
+                        <option value="speaker2">Speaker 2</option>
+                        <option value="speaker3">Speaker 3</option>
+                    </select>
+                    <span class="timestamp">${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s</span>
+                </div>
+                <div class="segment-content">
+                    <textarea>${segment.text}</textarea>
+                    <button class="split-marker" title="Split segment">+</button>
+                </div>
+            `;
+
+            // Set speaker if it exists in the data
+            if (segment.speaker) {
+                div.querySelector('.speaker-select').value = segment.speaker;
+            }
+
+            // Add split functionality
+            const splitButton = div.querySelector('.split-marker');
+            const textarea = div.querySelector('textarea');
+
+            splitButton.addEventListener('click', () => {
+                const selection = textarea.selectionStart;
+                if (selection > 0) {
+                    const text = textarea.value;
+                    const firstPart = text.substring(0, selection);
+                    const secondPart = text.substring(selection);
+
+                    // Create a deep copy of the current segment
+                    const currentSegment = {...transcriptData[index]};
+                    const midTime = (currentSegment.start + currentSegment.end) / 2;
+
+                    // Update current segment
+                    transcriptData[index] = {
+                        ...currentSegment,
+                        text: firstPart,
+                        end: midTime
+                    };
+
+                    // Create new segment
+                    const newSegment = {
+                        ...currentSegment,
+                        id: transcriptData.length,
+                        start: midTime,
+                        end: currentSegment.end,
+                        text: secondPart
+                    };
+
+                    // Insert new segment after current one
+                    transcriptData.splice(index + 1, 0, newSegment);
+                    renderTranscript();
+                }
+            });
+
+            return div;
+        }
+
+        function renderTranscript() {
+            transcriptContainer.innerHTML = '';
+            transcriptData.forEach((segment, index) => {
+                transcriptContainer.appendChild(createSegment(segment, index));
+            });
+        }
+
+        function getCurrentTranscriptData() {
+            const segments = document.querySelectorAll('.transcript-segment');
+            return Array.from(segments).map((segment, index) => {
+                const speaker = segment.querySelector('.speaker-select').value;
+                const text = segment.querySelector('textarea').value;
+                const timestamps = segment.querySelector('.timestamp').textContent.match(/(\d+\.?\d*)/g);
+
+                return {
+                    id: index,
+                    speaker: speaker,
+                    start: parseFloat(timestamps[0]),
+                    end: parseFloat(timestamps[1]),
+                    text: text
+                };
+            });
+        }
+
+        function downloadTranscript() {
+            const currentData = getCurrentTranscriptData();
+            const jsonString = JSON.stringify(currentData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'transcript.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize empty transcript
+        renderTranscript();
+    </script>
+</body>
+</html>
