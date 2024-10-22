@@ -280,12 +280,22 @@
                 <label><input type="radio" name="speaker${index}" value="speaker3" ${segment.speaker === 'speaker3' ? 'checked' : ''}> Speaker 3</label>
             </div>
             <span class="timestamp" data-start="${segment.start.toFixed(2)}">${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s</span>
+            <button class="play-segment-btn" data-start="${segment.start.toFixed(2)}">Play</button>  <!-- Play button -->
         </div>
         <div class="segment-content">
             <textarea>${segment.text}</textarea>
             <button class="split-marker" title="Split segment">+</button>
         </div>
     `;
+
+            // Add event listener for the play button
+            const playButton = div.querySelector('.play-segment-btn');
+            playButton.addEventListener('click', function () {
+                const startTime = parseFloat(this.getAttribute('data-start'));
+                const audioPlayer = document.getElementById('audio-player');
+                audioPlayer.currentTime = startTime; // Set audio time to the segment's start time
+                audioPlayer.play(); // Play the audio
+            });
 
             // Listen for changes in speaker selection and update transcriptData
             const speakerInputs = div.querySelectorAll(`input[name="speaker${index}"]`);
