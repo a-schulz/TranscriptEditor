@@ -13,14 +13,17 @@ In the end it is just a basic html file with some javascript logic.
 
 ### Prerequisites
 
-. If you recorded a video extract the audio part as mp3 (e.g. using `ffmpeg -i input.mkv -vn -c:a libmp3lame -y output.mp3`)
-. Transcribe the audio file (I used Groq.com with the whisper model)
-.. Save the produced json transcription
+1. If you recorded a video extract the audio part as mp3 (e.g. using `ffmpeg -i input.mkv -vn -c:a libmp3lame -y output.mp3`)
+2. Transcribe the audio file (I used Groq.com with the whisper model)
+    * Save the produced json transcription
 
 ### Usage
 
-. Open the html file in a webbrowser.
-. Upload the audio file
-. Upload the json file
-. Press play and prove if the audio matches the transcription on the right.
-.. You can add speakers if there are different speakers present in the interview or recording.
+1. Open the html file in a webbrowser.
+2. Upload the audio file
+3. Upload the json file
+4. Press play and prove if the audio matches the transcription on the right.
+    * You can add speakers if there are different speakers present in the interview or recording.
+
+## Screenshots
+![Screenshot TranscriptEditor](/Demo.png)
