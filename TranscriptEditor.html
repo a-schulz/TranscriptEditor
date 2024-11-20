@@ -283,7 +283,7 @@
             <button class="play-segment-btn" data-start="${segment.start.toFixed(2)}">Play</button>  <!-- Play button -->
         </div>
         <div class="segment-content">
-            <textarea>${segment.text}</textarea>
+            <textarea id="textarea-${index}">${segment.text}</textarea>
             <button class="split-marker" title="Split segment">+</button>
         </div>
     `;
@@ -305,9 +305,14 @@
                 });
             });
 
+            // Listen for changes in textarea and update transcriptData
+            const textarea = div.querySelector(`#textarea-${index}`);
+            textarea.addEventListener('input', (event) => {
+                transcriptData[index].text = event.target.value;  // Update text in transcriptData
+            });
+
             // Add split functionality
             const splitButton = div.querySelector('.split-marker');
-            const textarea = div.querySelector('textarea');
             splitButton.addEventListener('click', () => {
                 const selection = textarea.selectionStart;
                 if (selection > 0) {
