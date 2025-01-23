@@ -26,4 +26,4 @@ In the end it is just a basic html file with some javascript logic.
     * You can add speakers if there are different speakers present in the interview or recording.
 
 ## Screenshots
-![Screenshot TranscriptEditor](/Demo.png)
+![Screenshot TranscriptEditor](Demo.png)
